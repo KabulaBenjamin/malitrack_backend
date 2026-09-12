@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
+import https from "https";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 
@@ -24,14 +25,15 @@ connectDB();
 
 const app = express();
 
-// Allowed origins for Web, Local Development, and Capacitor Android/iOS builds
+// Allowed origins for Web, Local Development, Production Vercel, and Capacitor Android/iOS builds
 const allowedOrigins = [
   "http://localhost:5000",
   "http://localhost:3000",
   "http://localhost:5173", // Default Vite dev port
   "http://localhost",
   "https://localhost",
-  "capacitor://localhost"
+  "capacitor://localhost",
+  "https://malitrack-frontend.vercel.app" // Production Vercel Frontend
 ];
 
 // Configure CORS for Mobile and Web clients
@@ -63,6 +65,16 @@ app.use("/api/price-items", priceItemRoutes);
 app.use("/api/business", businessRoutes);
 app.use("/api/mpesa", mpesaRoutes);
 app.use("/api/reports", reportRoutes);
+
+// Keep Render free tier instance awake via self-ping
+const RENDER_URL = "https://malitrack-backend.onrender.com";
+setInterval(() => {
+  https.get(RENDER_URL, (res) => {
+    console.log(`Keep-alive self-ping status: ${res.statusCode}`);
+  }).on("error", (err) => {
+    console.error("Keep-alive ping error:", err.message);
+  });
+}, 14 * 60 * 1000); // Runs every 14 minutes
 
 // 404 handler
 app.use((req, res) => {
